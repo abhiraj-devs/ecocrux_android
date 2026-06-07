@@ -1,0 +1,48 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Slanted E -->
+    <path android:pathData="M25,35 L60,35 L57,43 L28,43 M26,52 L54,52 L51,60 L24,60 M23,69 L57,69 L54,77 L20,77 M25,35 L20,77 L28,77 L33,35 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="20"
+                android:startY="35"
+                android:endX="60"
+                android:endY="77"
+                android:type="linear">
+                <item android:offset="0" android:color="#86EFAC" />
+                <item android:offset="1" android:color="#22C55E" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Slanted C -->
+    <path android:pathData="M65,35 L95,35 L92,43 L73,43 L65,77 L92,77 L89,85 L60,85 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="60"
+                android:startY="35"
+                android:endX="95"
+                android:endY="85"
+                android:type="linear">
+                <item android:offset="0" android:color="#064E3B" />
+                <item android:offset="1" android:color="#065F46" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Lightning Bolt -->
+    <path
+        android:fillColor="#4ADE80"
+        android:pathData="M78,48 L90,60 L82,60 L86,76 L74,64 L82,64 Z" />
+
+    <!-- Leaf -->
+    <path
+        android:fillColor="#4ADE80"
+        android:pathData="M90,35 C98,27 102,31 102,31 C98,39 90,35 90,35 Z" />
+
+</vector>
