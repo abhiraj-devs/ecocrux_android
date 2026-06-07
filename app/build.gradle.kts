@@ -50,6 +50,7 @@ dependencies {
 
   // Core Android dependencies
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.core.splashscreen)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
 
@@ -87,4 +88,11 @@ dependencies {
   implementation(libs.supabase.gotrue)
   implementation(libs.ktor.client.android)
   implementation(libs.coil.compose)
+  
+  // Gemini AI
+  implementation(libs.google.generativeai)
+  
+  // Location & Map
+  implementation(libs.play.services.location)
+  implementation(libs.osmdroid.android)
 }

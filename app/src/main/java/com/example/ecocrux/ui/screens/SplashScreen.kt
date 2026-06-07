@@ -19,16 +19,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import com.example.ecocrux.R
+import com.example.ecocrux.data.AuthRepository
+import com.example.ecocrux.theme.BgDarkNavy
 import io.github.jan.supabase.auth.auth
+import kotlin.time.Duration.Companion.seconds
 
 @Preview(showBackground = true, device = "id:pixel_8")
 @Composable
 fun SplashScreenPreview() {
-    SplashScreen(onNavigateToAuth = {}, onNavigateToDashboard = {})
+    SplashScreen(onNavigateToAuth = {}, onNavigateToDashboard = {}, onNavigateToOnboarding = {})
 }
 
 @Composable
-fun SplashScreen(onNavigateToAuth: () -> Unit, onNavigateToDashboard: () -> Unit) {
+fun SplashScreen(
+    onNavigateToAuth: () -> Unit,
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToOnboarding: () -> Unit
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "logo_animation")
     
     val scale by infiniteTransition.animateFloat(
@@ -36,18 +43,36 @@ fun SplashScreen(onNavigateToAuth: () -> Unit, onNavigateToDashboard: () -> Unit
         targetValue = 1.02f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = RepeatMode.Reverse,
         ),
         label = "scale"
     )
 
     LaunchedEffect(Unit) {
-        delay(4000) 
-        com.example.ecocrux.data.SupabaseClient.client.auth.awaitInitialization()
-        val session = com.example.ecocrux.data.SupabaseClient.client.auth.currentSessionOrNull()
-        if (session != null) {
-            onNavigateToDashboard()
-        } else {
+        try {
+            delay(2.seconds)
+            val session = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    com.example.ecocrux.data.SupabaseClient.client.auth.awaitInitialization()
+                    com.example.ecocrux.data.SupabaseClient.client.auth.currentSessionOrNull()
+                } catch (e: Exception) {
+                    android.util.Log.e("SplashScreen", "Supabase init failed", e)
+                    null
+                }
+            }
+            if (session != null) {
+                // User has an existing session — check if onboarding is complete
+                val repository = AuthRepository()
+                if (repository.isProfileComplete()) {
+                    onNavigateToDashboard()
+                } else {
+                    onNavigateToOnboarding()
+                }
+            } else {
+                onNavigateToAuth()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SplashScreen", "Navigation failed", e)
             onNavigateToAuth()
         }
     }
@@ -55,7 +80,7 @@ fun SplashScreen(onNavigateToAuth: () -> Unit, onNavigateToDashboard: () -> Unit
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0F15)), 
+            .background(BgDarkNavy),
         contentAlignment = Alignment.Center
     ) {
         // App Icon

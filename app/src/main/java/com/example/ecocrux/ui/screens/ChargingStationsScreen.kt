@@ -9,18 +9,30 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ecocrux.theme.*
+import com.example.ecocrux.ui.main.LocationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChargingStationsScreen() {
+fun ChargingStationsScreen(locationViewModel: LocationViewModel = viewModel()) {
+    val context = LocalContext.current
+    val currentCity by locationViewModel.currentCity.collectAsState()
+    val stations by locationViewModel.stations.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        locationViewModel.fetchLocation(context)
+    }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -34,13 +46,16 @@ fun ChargingStationsScreen() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Charging stations", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Column {
+                Text("Charging stations", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text("Near ${currentCity ?: "you"}", color = AccentGreen, fontSize = 14.sp)
+            }
             Box(
                 modifier = Modifier
                     .background(Color(0xFF0F3E34), RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text("3 available", color = AccentGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("${stations.size} available", color = AccentGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -48,9 +63,12 @@ fun ChargingStationsScreen() {
 
         // Search Bar
         TextField(
-            value = "",
-            onValueChange = {},
-            placeholder = { Text("Search stations...", color = TextSecondary) },
+            value = searchQuery,
+            onValueChange = { 
+                searchQuery = it 
+                locationViewModel.updateManualLocation(it)
+            },
+            placeholder = { Text("Search location...", color = TextSecondary) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary) },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = SurfaceDarkBlue,
@@ -77,11 +95,25 @@ fun ChargingStationsScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Station Cards
-        StationCard(name = "Tata Power EV — MG Road", distance = "1.2 km · Open 24/7", status = "Available", statusColor = AccentGreen, price = "₹15/kWh · 50kW DC")
-        Spacer(modifier = Modifier.height(12.dp))
-        StationCard(name = "EESL Charger — Forum Mall", distance = "2.8 km · 6AM–10PM", status = "1 queued", statusColor = AccentAmber, price = "₹12/kWh · 22kW AC")
-        Spacer(modifier = Modifier.height(12.dp))
-        StationCard(name = "ChargeZone — Airport Rd", distance = "4.1 km · Open 24/7", status = "In use", statusColor = AccentRed, price = "~18 min wait")
+        if (stations.isEmpty()) {
+            if (locationViewModel.isSearching.collectAsState().value) {
+                CircularProgressIndicator(color = AccentGreen, modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                Text("No chargers found in this area. Try searching.", color = TextSecondary, modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
+        } else {
+            stations.forEach { station ->
+                val distanceStr = String.format("%.1f km", station.distanceKm)
+                StationCard(
+                    name = station.name,
+                    distance = "$distanceStr · Open 24/7",
+                    status = "Available",
+                    statusColor = AccentGreen,
+                    price = "Public Charger"
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
     }
 }
 

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ecocrux.R
+import com.example.ecocrux.theme.BgDarkNavy
 import com.example.ecocrux.ui.main.AuthState
 import com.example.ecocrux.ui.main.AuthViewModel
 
@@ -28,9 +29,10 @@ import com.example.ecocrux.ui.main.AuthViewModel
 @Composable
 fun AuthScreen(
     onNavigateToDashboard: () -> Unit,
-    viewModel: AuthViewModel = viewModel()
+    onNavigateToOnboarding: () -> Unit,
+    viewModel: AuthViewModel = viewModel(),
 ) {
-    var isLogin by remember { mutableStateOf(true) }
+    var isLogin by remember { mutableStateOf(value = true) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -38,15 +40,17 @@ fun AuthScreen(
     val authState by viewModel.authState.collectAsState()
 
     LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
-            onNavigateToDashboard()
+        when (authState) {
+            is AuthState.Success -> onNavigateToDashboard()
+            is AuthState.SuccessNewUser -> onNavigateToOnboarding()
+            else -> { /* no-op */ }
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0F15))
+            .background(BgDarkNavy)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {

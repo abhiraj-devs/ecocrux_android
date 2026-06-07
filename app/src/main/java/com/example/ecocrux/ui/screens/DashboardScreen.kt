@@ -22,12 +22,12 @@ import com.example.ecocrux.theme.TextSecondary
 @Composable
 fun DashboardScreenPreview() {
     EcocruxTheme {
-        DashboardScreen(onSignOut = {})
+        DashboardScreen(onSignOut = {}, onNavigateToFeedback = {}, onNavigateToMap = {})
     }
 }
 
 @Composable
-fun DashboardScreen(onSignOut: () -> Unit) {
+fun DashboardScreen(onSignOut: () -> Unit, onNavigateToFeedback: () -> Unit, onNavigateToMap: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -115,11 +115,11 @@ fun DashboardScreen(onSignOut: () -> Unit) {
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> HomeScreen()
+                0 -> HomeScreen(onNavigateToMap = onNavigateToMap)
                 1 -> ChargingStationsScreen()
                 2 -> MyCarScreen()
                 3 -> TripPlannerScreen()
-                4 -> ProfileScreen(onSignOut = onSignOut)
+                4 -> ProfileScreen(onSignOut = onSignOut, onNavigateToFeedback = onNavigateToFeedback)
             }
         }
     }

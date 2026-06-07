@@ -16,10 +16,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
+import com.example.ecocrux.data.AuthRepository
+import com.example.ecocrux.data.GeminiService
+import com.example.ecocrux.data.TimelineItemData
 import com.example.ecocrux.theme.*
 
 @Composable
 fun TripPlannerScreen() {
+    val coroutineScope = rememberCoroutineScope()
+    val authRepository = remember { AuthRepository() }
+    val userProfile = remember { authRepository.getUserProfile() }
+    val vehicle = userProfile?.vehicle?.ifBlank { "Tata Nexon EV" } ?: "Tata Nexon EV"
+
+    var fromLocation by remember { mutableStateOf("Kochi, Kerala") }
+    var toLocation by remember { mutableStateOf("Munnar, Kerala") }
+    var isLoading by remember { mutableStateOf(false) }
+    var timelineItems by remember { mutableStateOf<List<TimelineItemData>>(emptyList()) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,42 +71,101 @@ fun TripPlannerScreen() {
                 .background(SurfaceDarkBlue, RoundedCornerShape(16.dp))
                 .padding(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(8.dp).background(AccentGreen, CircleShape))
-                Spacer(modifier = Modifier.width(16.dp))
-                Text("Kochi, Kerala", color = Color.White, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = fromLocation,
+                onValueChange = { fromLocation = it },
+                label = { Text("Start Location") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AccentGreen,
+                    unfocusedBorderColor = BorderSlate,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = toLocation,
+                onValueChange = { toLocation = it },
+                label = { Text("Destination") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AccentRed,
+                    unfocusedBorderColor = BorderSlate,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(
+                onClick = {
+                    if (fromLocation.isNotBlank() && toLocation.isNotBlank()) {
+                        isLoading = true
+                        coroutineScope.launch {
+                            timelineItems = GeminiService.planTrip(fromLocation, toLocation, vehicle)
+                            isLoading = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA855F7)),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Plan with Gemini AI", color = Color.White, fontWeight = FontWeight.Bold)
+                }
             }
-            Box(modifier = Modifier.padding(start = 3.dp).height(20.dp).width(2.dp).background(BorderSlate))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(8.dp).background(AccentRed, CircleShape))
-                Spacer(modifier = Modifier.width(16.dp))
-                Text("Munnar, Kerala", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Summary Cards
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            StatCard(modifier = Modifier.weight(1f), title = "130 km", subtitle = "Total distance", titleColor = Color.White)
-            StatCard(modifier = Modifier.weight(1f), title = "2 stops", subtitle = "Charge stops", titleColor = AccentGreen)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("DAY 1 — KOCHI TO MUNNAR", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // Timeline
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(SurfaceDarkBlue, RoundedCornerShape(16.dp))
-                .padding(16.dp)
-        ) {
-            TimelineItem(color = AccentGreen, title = "Start — Kochi (74% battery)", time = "8:00 AM", isLast = false)
-            TimelineItem(color = AccentBlue, title = "Charge — Tata Power, Muvattupuzha", subtitle = "45 min · +40% · ₹95", time = "9:30 AM", isLast = false)
-            TimelineItem(color = AccentAmber, title = "Lunch — Spice Garden Restaurant", subtitle = "Rated 4.4 · ₹₹", time = "10:20 AM", isLast = false)
-            TimelineItem(color = AccentRed, title = "Arrive — Munnar (31% battery)", time = "1:00 PM", isLast = true)
+        if (timelineItems.isNotEmpty()) {
+            Text("AI TRIP TIMELINE", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Timeline
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(SurfaceDarkBlue, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            ) {
+                timelineItems.forEachIndexed { index, item ->
+                    val color = when (item.type) {
+                        "start" -> AccentGreen
+                        "charge" -> AccentBlue
+                        "food" -> AccentAmber
+                        "arrive" -> AccentRed
+                        else -> Color.Gray
+                    }
+                    TimelineItem(
+                        color = color,
+                        title = item.title,
+                        subtitle = item.subtitle,
+                        time = item.time,
+                        isLast = index == timelineItems.size - 1
+                    )
+                }
+            }
+        } else {
+            // Placeholder text when empty
+            Box(
+                modifier = Modifier.fillMaxWidth().height(100.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Enter locations and tap 'Plan' to generate an AI route.", color = TextSecondary, fontSize = 14.sp)
+            }
         }
     }
 }

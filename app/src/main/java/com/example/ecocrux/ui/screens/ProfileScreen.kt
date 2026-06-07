@@ -1,19 +1,7 @@
 package com.example.ecocrux.ui.screens
 
-import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.SupportAgent
@@ -30,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.ecocrux.data.AuthRepository
+import com.example.ecocrux.data.IndianEvVehicles
 import com.example.ecocrux.data.SupabaseClient
 import com.example.ecocrux.theme.AccentGreen
 import com.example.ecocrux.theme.AccentRed
@@ -42,22 +31,35 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import androidx.activity.compose.rememberLauncherForActivityResult
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onSignOut: () -> Unit) {
+fun ProfileScreen(onSignOut: () -> Unit, onNavigateToFeedback: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     val authRepository = remember { AuthRepository() }
     val context = LocalContext.current
 
     var name by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
-    var vehicleType by remember { mutableStateOf("Hatchback") }
+    var vehicle by remember { mutableStateOf("") }
     var profileImageUri by remember { mutableStateOf<Uri?>(null) }
     
-    val vehicleOptions = listOf("Hatchback", "Sedan", "SUV", "Truck", "Motorcycle")
+    val vehicleOptions = IndianEvVehicles.list
     var vehicleDropdownExpanded by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(false) }
@@ -71,7 +73,7 @@ fun ProfileScreen(onSignOut: () -> Unit) {
             val jsonMetadata = metadata.jsonObject
             name = jsonMetadata["name"]?.jsonPrimitive?.contentOrNull ?: ""
             username = jsonMetadata["username"]?.jsonPrimitive?.contentOrNull ?: ""
-            vehicleType = jsonMetadata["vehicleType"]?.jsonPrimitive?.contentOrNull ?: "Hatchback"
+            vehicle = jsonMetadata["vehicle"]?.jsonPrimitive?.contentOrNull ?: ""
             val uriString = jsonMetadata["profileImage"]?.jsonPrimitive?.contentOrNull
             if (uriString != null) {
                 profileImageUri = Uri.parse(uriString)
@@ -172,17 +174,25 @@ fun ProfileScreen(onSignOut: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Vehicle Type Dropdown
+        val filteredOptions = remember(vehicle) {
+            if (vehicle.isBlank()) vehicleOptions
+            else vehicleOptions.filter { it.contains(vehicle, ignoreCase = true) }
+        }
+
         ExposedDropdownMenuBox(
             expanded = vehicleDropdownExpanded,
             onExpandedChange = { vehicleDropdownExpanded = !vehicleDropdownExpanded }
         ) {
             OutlinedTextField(
-                value = vehicleType,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Vehicle Type") },
+                value = vehicle,
+                onValueChange = { 
+                    vehicle = it
+                    vehicleDropdownExpanded = true
+                },
+                placeholder = { Text("e.g. Tata Nexon EV") },
+                label = { Text("Vehicle Model") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = vehicleDropdownExpanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable).fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AccentGreen,
                     unfocusedBorderColor = BorderSlate,
@@ -197,14 +207,21 @@ fun ProfileScreen(onSignOut: () -> Unit) {
                 expanded = vehicleDropdownExpanded,
                 onDismissRequest = { vehicleDropdownExpanded = false }
             ) {
-                vehicleOptions.forEach { option ->
+                if (filteredOptions.isEmpty()) {
                     DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = {
-                            vehicleType = option
-                            vehicleDropdownExpanded = false
-                        }
+                        text = { Text("No vehicles found", color = TextSecondary) },
+                        onClick = {}
                     )
+                } else {
+                    filteredOptions.take(6).forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                vehicle = option
+                                vehicleDropdownExpanded = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -221,7 +238,7 @@ fun ProfileScreen(onSignOut: () -> Unit) {
                             data = buildJsonObject {
                                 put("name", name)
                                 put("username", username)
-                                put("vehicleType", vehicleType)
+                                put("vehicle", vehicle)
                                 put("profileImage", profileImageUri?.toString() ?: "")
                             }
                         }
@@ -254,17 +271,63 @@ fun ProfileScreen(onSignOut: () -> Unit) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
+        Text("Settings", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // App Version
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = SurfaceDarkBlue,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = "Info", tint = Color.White)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("App Version", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+                Text("1.0.0", color = TextSecondary, fontSize = 14.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Notifications
+        var notificationsEnabled by remember { mutableStateOf(true) }
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = SurfaceDarkBlue,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.White)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Notifications", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it },
+                    colors = SwitchDefaults.colors(checkedThumbColor = AccentGreen, checkedTrackColor = AccentGreen.copy(alpha = 0.5f))
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // Support Section
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    val intent = Intent(Intent.ACTION_SENDTO).apply {
-                        data = Uri.parse("mailto:support@ecocrux.com")
-                        putExtra(Intent.EXTRA_SUBJECT, "Feedback / Bug Report")
-                    }
-                    context.startActivity(Intent.createChooser(intent, "Send Email"))
-                },
+                .clickable { onNavigateToFeedback() },
             color = SurfaceDarkBlue,
             shape = RoundedCornerShape(16.dp)
         ) {
