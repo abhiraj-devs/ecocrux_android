@@ -43,6 +43,7 @@ fun SplashScreen(onNavigateToAuth: () -> Unit, onNavigateToDashboard: () -> Unit
 
     LaunchedEffect(Unit) {
         delay(4000) 
+        com.example.ecocrux.data.SupabaseClient.client.auth.awaitInitialization()
         val session = com.example.ecocrux.data.SupabaseClient.client.auth.currentSessionOrNull()
         if (session != null) {
             onNavigateToDashboard()

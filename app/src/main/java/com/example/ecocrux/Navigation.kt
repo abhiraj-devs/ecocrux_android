@@ -35,7 +35,10 @@ fun MainNavigation() {
           })
         }
         entry<Dashboard> {
-          DashboardScreen()
+          DashboardScreen(onSignOut = {
+            backStack.removeLastOrNull()
+            backStack.add(Auth)
+          })
         }
       },
 

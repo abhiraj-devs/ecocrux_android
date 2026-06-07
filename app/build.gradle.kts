@@ -86,4 +86,5 @@ dependencies {
   // Supabase
   implementation(libs.supabase.gotrue)
   implementation(libs.ktor.client.android)
+  implementation(libs.coil.compose)
 }

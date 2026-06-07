@@ -4,7 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -18,13 +22,28 @@ import com.example.ecocrux.theme.TextSecondary
 @Composable
 fun DashboardScreenPreview() {
     EcocruxTheme {
-        DashboardScreen()
+        DashboardScreen(onSignOut = {})
     }
 }
 
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(onSignOut: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        // Handle permissions if needed
+    }
+
+    LaunchedEffect(Unit) {
+        permissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
 
     Scaffold(
         bottomBar = {
@@ -100,7 +119,7 @@ fun DashboardScreen() {
                 1 -> ChargingStationsScreen()
                 2 -> MyCarScreen()
                 3 -> TripPlannerScreen()
-                4 -> HealthServiceScreen()
+                4 -> ProfileScreen(onSignOut = onSignOut)
             }
         }
     }
