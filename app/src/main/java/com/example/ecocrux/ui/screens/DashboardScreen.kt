@@ -115,7 +115,12 @@ fun DashboardScreen(onSignOut: () -> Unit, onNavigateToFeedback: () -> Unit, onN
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> HomeScreen(onNavigateToMap = onNavigateToMap)
+                0 -> HomeScreen(
+                    onNavigateToMap = onNavigateToMap,
+                    onNavigateToTripPlanner = { selectedTab = 3 },
+                    onNavigateToService = { selectedTab = 4 }, // Placeholder, points to profile
+                    onNavigateToAiAssist = { selectedTab = 3 }
+                )
                 1 -> ChargingStationsScreen()
                 2 -> MyCarScreen()
                 3 -> TripPlannerScreen()

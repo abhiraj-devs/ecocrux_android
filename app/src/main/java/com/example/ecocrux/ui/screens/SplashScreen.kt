@@ -48,7 +48,9 @@ fun SplashScreen(
         label = "scale"
     )
 
+    val isInspection = androidx.compose.ui.platform.LocalInspectionMode.current
     LaunchedEffect(Unit) {
+        if (isInspection) return@LaunchedEffect
         try {
             delay(2.seconds)
             val session = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -61,7 +63,6 @@ fun SplashScreen(
                 }
             }
             if (session != null) {
-                // User has an existing session — check if onboarding is complete
                 val repository = AuthRepository()
                 if (repository.isProfileComplete()) {
                     onNavigateToDashboard()
@@ -87,6 +88,7 @@ fun SplashScreen(
         Image(
             painter = painterResource(id = R.drawable.ecocruxicon),
             contentDescription = "Ecocrux Logo",
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
             modifier = Modifier
                 .size(240.dp)
                 .scale(scale)
@@ -111,19 +113,20 @@ fun SplashScreen(
                 text = "from",
                 style = TextStyle(
                     color = Color.Gray,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.sp
                 )
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             
             Image(
                 painter = painterResource(id = R.drawable.zylabixlogo),
                 contentDescription = "Zylabix Logo",
+                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
+                    .width(120.dp)
             )
         }
     }

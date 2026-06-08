@@ -26,11 +26,20 @@ import java.util.Calendar
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ecocrux.ui.main.VehicleViewModel
 import com.example.ecocrux.ui.main.ConnectionState
+import com.example.ecocrux.ui.main.LocationViewModel
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun HomeScreen(
     vehicleViewModel: VehicleViewModel = viewModel(),
-    onNavigateToMap: () -> Unit = {}
+    locationViewModel: LocationViewModel = viewModel(),
+    onNavigateToMap: () -> Unit = {},
+    onNavigateToTripPlanner: () -> Unit = {},
+    onNavigateToService: () -> Unit = {},
+    onNavigateToAiAssist: () -> Unit = {}
 ) {
     val repository = remember { AuthRepository() }
     val profile = remember { repository.getUserProfile() }
@@ -45,6 +54,26 @@ fun HomeScreen(
         hour < 12 -> "Good morning"
         hour < 17 -> "Good afternoon"
         else -> "Good evening"
+    }
+
+    val currentCity by locationViewModel.currentCity.collectAsState()
+    val stations by locationViewModel.stations.collectAsState()
+    val context = LocalContext.current
+    
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true || permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+            locationViewModel.fetchLocation(context)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            permissionLauncher.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+        } else {
+            locationViewModel.fetchLocation(context)
+        }
     }
 
     var showNotifications by remember { mutableStateOf(false) }
@@ -63,6 +92,12 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = AccentGreen, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(currentCity ?: "Fetching location...", color = TextSecondary, fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(greeting, color = TextSecondary, fontSize = 14.sp)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(firstName, color = TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -99,7 +134,16 @@ fun HomeScreen(
                         .background(Color(0xFF0F3E34), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(initial, color = AccentGreen, fontWeight = FontWeight.Bold)
+                    if (profile?.profileImage.isNullOrBlank()) {
+                        Text(initial, color = AccentGreen, fontWeight = FontWeight.Bold)
+                    } else {
+                        AsyncImage(
+                            model = profile?.profileImage,
+                            contentDescription = "Profile Picture",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape)
+                        )
+                    }
                 }
             }
         }
@@ -163,7 +207,7 @@ fun HomeScreen(
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            StatCard(modifier = Modifier.weight(1f), title = "3", subtitle = "Chargers nearby", titleColor = Color.White)
+            StatCard(modifier = Modifier.weight(1f), title = stations.size.toString(), subtitle = "Chargers nearby", titleColor = Color.White)
             StatCard(
                 modifier = Modifier.weight(1f), 
                 title = if (connectionState == ConnectionState.CONNECTED && vehicleStats != null) "${vehicleStats!!.cabinTempCelsius}°C" else "--°C", 
@@ -181,10 +225,10 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            QuickActionButton(icon = Icons.Default.EvStation, label = "Find\ncharger", color = AccentGreen, bgColor = Color(0xFF0D2A24))
-            QuickActionButton(icon = Icons.Default.Route, label = "Plan\ntrip", color = AccentBlue, bgColor = Color(0xFF162544))
-            QuickActionButton(icon = Icons.Default.Build, label = "Service", color = AccentAmber, bgColor = Color(0xFF332616))
-            QuickActionButton(icon = Icons.Default.SmartToy, label = "AI\nassist", color = Color(0xFFA855F7), bgColor = Color(0xFF2E1A47))
+            QuickActionButton(icon = Icons.Default.EvStation, label = "Find\ncharger", color = AccentGreen, bgColor = Color(0xFF0D2A24), onClick = onNavigateToMap)
+            QuickActionButton(icon = Icons.Default.Route, label = "Plan\ntrip", color = AccentBlue, bgColor = Color(0xFF162544), onClick = onNavigateToTripPlanner)
+            QuickActionButton(icon = Icons.Default.Build, label = "Service", color = AccentAmber, bgColor = Color(0xFF332616), onClick = onNavigateToService)
+            QuickActionButton(icon = Icons.Default.SmartToy, label = "AI\nassist", color = Color(0xFFA855F7), bgColor = Color(0xFF2E1A47), onClick = onNavigateToAiAssist)
         }
     }
 }
@@ -203,13 +247,14 @@ fun StatCard(modifier: Modifier = Modifier, title: String, subtitle: String, tit
 }
 
 @Composable
-fun QuickActionButton(icon: ImageVector, label: String, color: Color, bgColor: Color) {
+fun QuickActionButton(icon: ImageVector, label: String, color: Color, bgColor: Color, onClick: () -> Unit = {}) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .width(76.dp)
             .height(100.dp)
             .background(bgColor, RoundedCornerShape(16.dp))
+            .clickable { onClick() }
             .padding(12.dp),
         verticalArrangement = Arrangement.Center
     ) {

@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
@@ -6,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.example.ecocrux"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "com.example.ecocrux"
         minSdk = 24
@@ -28,8 +31,19 @@ android {
     buildFeatures {
       compose = true
       aidl = false
-      buildConfig = false
+      buildConfig = true
       shaders = false
+    }
+
+    val properties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        properties.load(FileInputStream(localPropertiesFile))
+    }
+    
+    defaultConfig {
+        buildConfigField("String", "MAPS_API_KEY", "\"${properties.getProperty("MAPS_API_KEY", "")}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${properties.getProperty("GEMINI_API_KEY", "")}\"")
     }
 
     packaging {
@@ -85,8 +99,10 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
   // Supabase
-  implementation(libs.supabase.gotrue)
+  implementation(libs.supabase.auth)
+  implementation(libs.supabase.postgrest)
   implementation(libs.ktor.client.android)
+  implementation(libs.ktor.client.core)
   implementation(libs.coil.compose)
   
   // Gemini AI

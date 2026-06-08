@@ -2,6 +2,7 @@ package com.example.ecocrux.data
 
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.postgrest.Postgrest
 
 object SupabaseClient {
     // TODO: Replace with your actual Supabase URL and Anon Key
@@ -13,5 +14,8 @@ object SupabaseClient {
         supabaseKey = SUPABASE_ANON_KEY
     ) {
         install(Auth)
+        install(Postgrest)
     }
+
+    val auth: Auth = client.pluginManager.getPlugin(Auth)
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -49,6 +50,7 @@ fun MyCarScreen(vehicleViewModel: VehicleViewModel = viewModel()) {
                 Box(
                     modifier = Modifier
                         .background(Color(0xFF0F3E34), RoundedCornerShape(8.dp))
+                        .clickable { vehicleViewModel.disconnect() }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -176,13 +178,15 @@ fun MyCarScreen(vehicleViewModel: VehicleViewModel = viewModel()) {
             QuickActionButton(icon = Icons.Default.LocationOn, label = "Locate", color = Color(0xFFA855F7), bgColor = Color(0xFF2E1A47))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("LIVE DIAGNOSTICS", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        DiagnosticCard(icon = Icons.Default.Bolt, title = "Motor efficiency", subtitle = "92% · Normal range", status = "Good", statusColor = AccentGreen)
-        Spacer(modifier = Modifier.height(12.dp))
-        DiagnosticCard(icon = Icons.Default.Warning, title = "Tyre pressure FL", subtitle = "27 PSI · Low detected", status = "Alert", statusColor = AccentRed)
+        if (connectionState == ConnectionState.CONNECTED) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("LIVE DIAGNOSTICS", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            DiagnosticCard(icon = Icons.Default.Bolt, title = "Motor efficiency", subtitle = "92% · Normal range", status = "Good", statusColor = AccentGreen)
+            Spacer(modifier = Modifier.height(12.dp))
+            DiagnosticCard(icon = Icons.Default.Warning, title = "Tyre pressure FL", subtitle = "27 PSI · Low detected", status = "Alert", statusColor = AccentRed)
+        }
     }
 }
 

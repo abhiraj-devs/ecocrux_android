@@ -123,6 +123,13 @@ fun ProfileScreen(onSignOut: () -> Unit, onNavigateToFeedback: () -> Unit) {
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
+            } else if (name.isNotBlank()) {
+                Text(
+                    text = name.first().uppercase(),
+                    color = AccentGreen,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 40.sp
+                )
             } else {
                 Icon(
                     imageVector = Icons.Default.CameraAlt,

@@ -2,7 +2,7 @@ package com.example.ecocrux.theme
 
 import androidx.compose.ui.graphics.Color
 
-val BgDarkNavy = Color(0xFF1A2A3A) // Lighter for debugging
+val BgDarkNavy = Color(0xFF0A111F)
 val SurfaceDarkBlue = Color(0xFF151E2F)
 val AccentGreen = Color(0xFF10B981)
 val AccentGreenTransparent = Color(0x3310B981)

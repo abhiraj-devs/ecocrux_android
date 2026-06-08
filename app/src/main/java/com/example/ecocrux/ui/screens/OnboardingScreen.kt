@@ -125,8 +125,21 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         0 -> {
                             if (name.isBlank()) {
                                 errorMessage = "Please enter your name"
+                            } else if (username.isBlank()) {
+                                errorMessage = "Please enter a username"
                             } else {
-                                currentStep = 1
+                                isLoading = true
+                                coroutineScope.launch {
+                                    val uniqueResult = repository.isUsernameUnique(username.trim())
+                                    isLoading = false
+                                    if (uniqueResult.isSuccess && uniqueResult.getOrNull() == true) {
+                                        currentStep = 1
+                                    } else if (uniqueResult.isSuccess) {
+                                        errorMessage = "Username is already taken"
+                                    } else {
+                                        errorMessage = "Error verifying username: ${uniqueResult.exceptionOrNull()?.message}"
+                                    }
+                                }
                             }
                         }
                         1 -> {
@@ -137,7 +150,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                                 coroutineScope.launch {
                                     val result = repository.updateUserMetadata(
                                         name = name.trim(),
-                                        username = username.trim().ifBlank { name.trim().lowercase().replace(" ", "") },
+                                        username = username.trim(),
                                         vehicle = vehicle
                                     )
                                     isLoading = false
@@ -300,7 +313,7 @@ private fun StepOneContent(
         OutlinedTextField(
             value = username,
             onValueChange = onUsernameChange,
-            label = { Text("Username (optional)") },
+            label = { Text("Username") },
             leadingIcon = {
                 Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = TextSecondary)
             },
@@ -412,7 +425,8 @@ private fun StepTwoContent(
             )
             ExposedDropdownMenu(
                 expanded = vehicleDropdownExpanded,
-                onDismissRequest = { onExpandedChange(false) }
+                onDismissRequest = { onExpandedChange(false) },
+                modifier = Modifier.heightIn(max = 240.dp)
             ) {
                 if (filteredOptions.isEmpty()) {
                     DropdownMenuItem(

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,9 +23,11 @@ import com.example.ecocrux.data.AuthRepository
 import com.example.ecocrux.data.GeminiService
 import com.example.ecocrux.data.TimelineItemData
 import com.example.ecocrux.theme.*
+import com.example.ecocrux.ui.main.LocationViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun TripPlannerScreen() {
+fun TripPlannerScreen(locationViewModel: LocationViewModel = viewModel()) {
     val coroutineScope = rememberCoroutineScope()
     val authRepository = remember { AuthRepository() }
     val userProfile = remember { authRepository.getUserProfile() }
@@ -34,6 +37,8 @@ fun TripPlannerScreen() {
     var toLocation by remember { mutableStateOf("Munnar, Kerala") }
     var isLoading by remember { mutableStateOf(false) }
     var timelineItems by remember { mutableStateOf<List<TimelineItemData>>(emptyList()) }
+    
+    val currentCity by locationViewModel.currentCity.collectAsState()
 
     Column(
         modifier = Modifier
@@ -83,7 +88,16 @@ fun TripPlannerScreen() {
                     unfocusedTextColor = Color.White
                 ),
                 shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = {
+                        if (currentCity != null && currentCity != "Locating..." && currentCity != "Location Error" && currentCity != "Permission Denied") {
+                            fromLocation = currentCity!!
+                        }
+                    }) {
+                        Icon(Icons.Default.MyLocation, contentDescription = "Use Current Location", tint = AccentGreen)
+                    }
+                }
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
