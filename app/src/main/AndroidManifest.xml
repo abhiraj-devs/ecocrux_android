@@ -14,6 +14,11 @@
         android:supportsRtl="true"
         android:windowSoftInputMode="adjustResize"
         android:theme="@style/Theme.Ecocrux">
+        
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

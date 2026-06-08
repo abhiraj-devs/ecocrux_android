@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.example.ecocrux.theme.BgDarkNavy
 import com.example.ecocrux.theme.TextSecondary
 import com.example.ecocrux.theme.AccentGreen
@@ -24,21 +23,22 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-
-import org.osmdroid.views.overlay.Marker
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ecocrux.ui.main.LocationViewModel
-import android.location.Geocoder
-import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.Polyline
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.example.ecocrux.ui.main.ChargingStation
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.MapProperties
 
 @Composable
 fun MapScreen(
@@ -49,13 +49,25 @@ fun MapScreen(
     val stations by locationViewModel.stations.collectAsState()
     val currentLocation by locationViewModel.currentLocation.collectAsState()
     val coroutineScope = rememberCoroutineScope()
-    var mapController: org.osmdroid.api.IMapController? by remember { mutableStateOf(null) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
     var selectedStation by remember { mutableStateOf<ChargingStation?>(null) }
 
     val searchSuggestions by locationViewModel.searchSuggestions.collectAsState()
     val routePolyline by locationViewModel.routePolyline.collectAsState()
+
+    val defaultLocation = LatLng(19.0760, 72.8777) // Mumbai default
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(defaultLocation, 12f)
+    }
+
+    LaunchedEffect(currentLocation) {
+        currentLocation?.let { loc ->
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newLatLngZoom(LatLng(loc.first, loc.second), 14f)
+            )
+        }
+    }
 
     LaunchedEffect(searchQuery) {
         if (searchQuery.isNotBlank()) {
@@ -65,66 +77,48 @@ fun MapScreen(
     }
 
     LaunchedEffect(Unit) {
-        Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
-        Configuration.getInstance().userAgentValue = context.packageName
         locationViewModel.fetchLocation(context)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // MapView inside AndroidView
-        AndroidView(
-            factory = { ctx ->
-                MapView(ctx).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
-                    mapController = controller
-                    controller.setZoom(14.0)
-                }
-            },
-            update = { mapView ->
-                mapView.overlays.clear()
-                
-                // User Location Marker
-                currentLocation?.let { loc ->
-                    val userPoint = GeoPoint(loc.first, loc.second)
-                    val userMarker = Marker(mapView)
-                    userMarker.position = userPoint
-                    userMarker.title = "My Location"
-                    userMarker.icon = context.getDrawable(android.R.drawable.ic_menu_mylocation)
-                    mapView.overlays.add(userMarker)
-                }
-
-                // Station Markers
-                stations.forEach { station ->
-                    val stationPoint = GeoPoint(station.lat, station.lon)
-                    val marker = Marker(mapView)
-                    marker.position = stationPoint
-                    marker.title = "${station.name} (${String.format("%.1f", station.distanceKm)} km)\nTap again to select."
-                    marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    marker.setOnMarkerClickListener { m, _ ->
-                        m.showInfoWindow()
-                        selectedStation = station
-                        true
-                    }
-                    mapView.overlays.add(marker)
-                }
-
-                // Route Polyline
-                routePolyline?.let { points ->
-                    val polyline = org.osmdroid.views.overlay.Polyline()
-                    polyline.setPoints(points)
-                    polyline.color = android.graphics.Color.parseColor("#3B82F6") // AccentBlue
-                    polyline.width = 12f
-                    mapView.overlays.add(polyline)
-                }
-                
-                mapView.invalidate()
-            },
-            modifier = Modifier.fillMaxSize().clickable { 
+        GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(isMyLocationEnabled = false),
+            uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false),
+            onMapClick = {
                 selectedStation = null
                 locationViewModel.clearRoute()
             }
-        )
+        ) {
+            currentLocation?.let { loc ->
+                Marker(
+                    state = MarkerState(position = LatLng(loc.first, loc.second)),
+                    title = "My Location"
+                )
+            }
+
+            stations.forEach { station ->
+                val stationPos = LatLng(station.lat, station.lon)
+                Marker(
+                    state = MarkerState(position = stationPos),
+                    title = station.name,
+                    snippet = "${String.format("%.1f", station.distanceKm)} km\nTap again to select.",
+                    onClick = {
+                        selectedStation = station
+                        false
+                    }
+                )
+            }
+
+            routePolyline?.let { points ->
+                Polyline(
+                    points = points,
+                    color = AccentBlue,
+                    width = 16f
+                )
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -221,12 +215,16 @@ fun MapScreen(
         FloatingActionButton(
             onClick = {
                 currentLocation?.let { loc ->
-                    mapController?.animateTo(GeoPoint(loc.first, loc.second))
+                    coroutineScope.launch {
+                        cameraPositionState.animate(
+                            update = CameraUpdateFactory.newLatLngZoom(LatLng(loc.first, loc.second), 14f)
+                        )
+                    }
                 }
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 100.dp, end = 24.dp), // offset above bottom nav if present
+                .padding(bottom = 100.dp, end = 24.dp),
             containerColor = AccentGreen,
             contentColor = BgDarkNavy
         ) {

@@ -44,6 +44,7 @@ android {
     defaultConfig {
         buildConfigField("String", "MAPS_API_KEY", "\"${properties.getProperty("MAPS_API_KEY", "")}\"")
         buildConfigField("String", "GEMINI_API_KEY", "\"${properties.getProperty("GEMINI_API_KEY", "")}\"")
+        manifestPlaceholders["MAPS_API_KEY"] = properties.getProperty("MAPS_API_KEY", "")
     }
 
     packaging {
@@ -110,5 +111,6 @@ dependencies {
   
   // Location & Map
   implementation(libs.play.services.location)
-  implementation(libs.osmdroid.android)
+  implementation(libs.play.services.maps)
+  implementation(libs.maps.compose)
 }

@@ -49,8 +49,8 @@ class LocationViewModel : ViewModel() {
     private val _searchSuggestions = MutableStateFlow<List<SearchSuggestion>>(emptyList())
     val searchSuggestions: StateFlow<List<SearchSuggestion>> = _searchSuggestions.asStateFlow()
 
-    private val _routePolyline = MutableStateFlow<List<org.osmdroid.util.GeoPoint>?>(null)
-    val routePolyline: StateFlow<List<org.osmdroid.util.GeoPoint>?> = _routePolyline.asStateFlow()
+    private val _routePolyline = MutableStateFlow<List<com.google.android.gms.maps.model.LatLng>?>(null)
+    val routePolyline: StateFlow<List<com.google.android.gms.maps.model.LatLng>?> = _routePolyline.asStateFlow()
 
     fun updateManualLocation(city: String) {
         _currentCity.value = city
@@ -251,10 +251,10 @@ class LocationViewModel : ViewModel() {
                     if (routes != null && routes.length() > 0) {
                         val geometry = routes.getJSONObject(0).getJSONObject("geometry")
                         val coordinates = geometry.getJSONArray("coordinates")
-                        val points = mutableListOf<org.osmdroid.util.GeoPoint>()
+                        val points = mutableListOf<com.google.android.gms.maps.model.LatLng>()
                         for (i in 0 until coordinates.length()) {
                             val point = coordinates.getJSONArray(i)
-                            points.add(org.osmdroid.util.GeoPoint(point.getDouble(1), point.getDouble(0)))
+                            points.add(com.google.android.gms.maps.model.LatLng(point.getDouble(1), point.getDouble(0)))
                         }
                         _routePolyline.value = points
                     }

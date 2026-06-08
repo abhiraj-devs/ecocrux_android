@@ -90,7 +90,7 @@ fun SplashScreen(
             contentDescription = "Ecocrux Logo",
             contentScale = androidx.compose.ui.layout.ContentScale.Fit,
             modifier = Modifier
-                .size(240.dp)
+                .size(224.dp)
                 .scale(scale)
         )
 

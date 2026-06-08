@@ -1,6 +1,7 @@
 package com.example.ecocrux.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -10,15 +11,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import com.example.ecocrux.data.AuthRepository
 import com.example.ecocrux.data.GeminiService
 import com.example.ecocrux.data.TimelineItemData
@@ -38,7 +39,23 @@ fun TripPlannerScreen(locationViewModel: LocationViewModel = viewModel()) {
     var isLoading by remember { mutableStateOf(false) }
     var timelineItems by remember { mutableStateOf<List<TimelineItemData>>(emptyList()) }
     
+    var activeField by remember { mutableStateOf<String?>(null) }
+    val searchSuggestions by locationViewModel.searchSuggestions.collectAsState()
     val currentCity by locationViewModel.currentCity.collectAsState()
+
+    LaunchedEffect(fromLocation) {
+        if (activeField == "from" && fromLocation.isNotBlank()) {
+            delay(500)
+            locationViewModel.getSearchSuggestions(fromLocation)
+        }
+    }
+
+    LaunchedEffect(toLocation) {
+        if (activeField == "to" && toLocation.isNotBlank()) {
+            delay(500)
+            locationViewModel.getSearchSuggestions(toLocation)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -46,6 +63,7 @@ fun TripPlannerScreen(locationViewModel: LocationViewModel = viewModel()) {
             .background(BgDarkNavy)
             .verticalScroll(rememberScrollState())
             .padding(20.dp)
+            .clickable { activeField = null }
     ) {
         // Header
         Row(
@@ -78,7 +96,7 @@ fun TripPlannerScreen(locationViewModel: LocationViewModel = viewModel()) {
         ) {
             OutlinedTextField(
                 value = fromLocation,
-                onValueChange = { fromLocation = it },
+                onValueChange = { fromLocation = it; activeField = "from" },
                 label = { Text("Start Location") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -99,10 +117,29 @@ fun TripPlannerScreen(locationViewModel: LocationViewModel = viewModel()) {
                     }
                 }
             )
+
+            if (activeField == "from" && searchSuggestions.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Column(modifier = Modifier.fillMaxWidth().background(BgDarkNavy, RoundedCornerShape(8.dp)).padding(8.dp)) {
+                    searchSuggestions.take(3).forEach { suggestion ->
+                        Text(
+                            text = suggestion.description,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                fromLocation = suggestion.description
+                                activeField = null
+                            }.padding(12.dp)
+                        )
+                        HorizontalDivider(color = Color(0xFF2A4031))
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = toLocation,
-                onValueChange = { toLocation = it },
+                onValueChange = { toLocation = it; activeField = "to" },
                 label = { Text("Destination") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -114,6 +151,24 @@ fun TripPlannerScreen(locationViewModel: LocationViewModel = viewModel()) {
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
+
+            if (activeField == "to" && searchSuggestions.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Column(modifier = Modifier.fillMaxWidth().background(BgDarkNavy, RoundedCornerShape(8.dp)).padding(8.dp)) {
+                    searchSuggestions.take(3).forEach { suggestion ->
+                        Text(
+                            text = suggestion.description,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                toLocation = suggestion.description
+                                activeField = null
+                            }.padding(12.dp)
+                        )
+                        HorizontalDivider(color = Color(0xFF2A4031))
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -121,6 +176,7 @@ fun TripPlannerScreen(locationViewModel: LocationViewModel = viewModel()) {
                 onClick = {
                     if (fromLocation.isNotBlank() && toLocation.isNotBlank()) {
                         isLoading = true
+                        activeField = null
                         coroutineScope.launch {
                             timelineItems = GeminiService.planTrip(fromLocation, toLocation, vehicle)
                             isLoading = false
